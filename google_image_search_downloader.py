@@ -249,7 +249,7 @@ if __name__ == '__main__':
     window = tk.Tk("Google image search downloader")
     # window.tk.call('tk', 'windowingsystem', window._w)
     window.geometry("350x150")
-    window.winfo_toplevel().title(__name__)
+    window.winfo_toplevel().title("Google image downloader")
     search_label = tk.Label(text="Search images")
     entry = tk.Entry()
     button = tk.Button(text="Download images", command=search_download_images)
