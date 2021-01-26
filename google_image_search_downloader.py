@@ -14,7 +14,7 @@ from multiprocessing import Process
 import multiprocessing
 import tkinter as tk
 from PIL import Image
-from pip._vendor import requests
+import requests
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
@@ -124,7 +124,10 @@ def search_in_google_image(query, number, connection):
     global browser
     options = Options()
     options.headless = True
-    browser = webdriver.Firefox(options=options, executable_path=r'geckodriver.exe')
+    # args = ["hide_console", ]
+
+    # browser = webdriver.Firefox(options=options, executable_path=r'driver/geckodriver.exe', service_args=args)
+    browser = webdriver.Firefox(options=options, executable_path=r'driver/geckodriver.exe')
 
     connection.send("Searching the query")
     search_url = f"https://www.google.com/search?site=&tbm=isch&source=hp&biw=1873&bih=990&q={query}"
@@ -147,6 +150,7 @@ def search_in_google_image(query, number, connection):
         futures = [executor.submit(save_file, query, number, args, connection) for args in elements]
         wait(futures, timeout=None, return_when=ALL_COMPLETED)
         connection.send("Downloads finished")
+    browser.quit()
     # results = executor.map(save_file, elements)
     # futures = []
     # for arg in elements:
@@ -204,15 +208,15 @@ def search_download_images():
     while time.perf_counter() < 90:
         print(time.perf_counter())
         window.update()
-        received_text=f"{parent_connection.recv()}"
+        window.attributes("-topmost", True)
+        received_text = f"{parent_connection.recv()}"
         info.config(text=received_text)
         if received_text.__contains__("Downloads finished") and not file_browser_opened:
-        # if time.perf_counter() > 60 and not file_browser_opened:
+            # if time.perf_counter() > 60 and not file_browser_opened:
             file_browser_opened = True
             subprocess.call(f"explorer {query_search}")
             return
-
-
+    sys.exit()
 
 
 # subprocess.call(f"explorer {query_search}")
@@ -237,12 +241,15 @@ def search_download_images():
 
 
 if __name__ == '__main__':
+    if sys.platform.startswith('win'):
+        # On Windows calling this function is necessary.
+        multiprocessing.freeze_support()
     queue = multiprocessing.Queue()
 
     window = tk.Tk("Google image search downloader")
-    window.tk.call('wm', 'iconphoto', window._w, tk.PhotoImage(file='google_logo.png'))
+    # window.tk.call('tk', 'windowingsystem', window._w)
     window.geometry("350x150")
-    window.winfo_toplevel().title("Google image search downloader")
+    window.winfo_toplevel().title(__name__)
     search_label = tk.Label(text="Search images")
     entry = tk.Entry()
     button = tk.Button(text="Download images", command=search_download_images)
@@ -254,7 +261,6 @@ if __name__ == '__main__':
     error.pack(pady=5, side=tk.TOP)
     info.pack(pady=5, side=tk.TOP)
     window.mainloop()
-
 
 # query_search = input("enter a search query\n")
 # split_query = re.split("\s", query_search)
