@@ -86,7 +86,7 @@ def search_in_google_image(query):
         os.mkdir(save_directory)
     print("Opening browser")
     global browser
-    browser = webdriver.Firefox(executable_path=r'C:/Program Files/Mozilla Firefox/geckodriver.exe')
+    browser = webdriver.Firefox(executable_path=r'geckodriver.exe')
     search_url = f"https://www.google.com/search?site=&tbm=isch&source=hp&biw=1873&bih=990&q={query}"
     images_url = []
 
