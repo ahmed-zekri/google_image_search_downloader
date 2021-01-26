@@ -1,12 +1,13 @@
 # Google image search downloader
 
-Google image search downloader is a python script that enables you to download all the images of a any given query search and save them in a file
+Google image search downloader is a python script that enables you to download all the images of any given query search and save them in a file
 named with the query name
 
 
 # Features!
 
-  - The use of python multithreading library to download images efficently 
+  - The use of python multithreading library to download images efficiently 
+  - The inclusion of mozilla gecko driver to enable the user to run the script without any configuration  
   - Scrolling down to the end of results and downloading all the pictures.
   - Checking for every downloaded picture and removing it in case of a corruption
 
