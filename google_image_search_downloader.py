@@ -18,8 +18,13 @@ import requests
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
+query_search = ""
 browser = None
 lock = threading.Lock()
+button_clicked = False
+process_spawned = False
+parent_connection = None
+download_started = False
 
 
 def save_file(query, number, element, connection):
@@ -37,7 +42,7 @@ def save_file(query, number, element, connection):
     except Exception:
 
         print("Downloading base64 image")
-        img_data = base64.b64decode(url)
+        img_data = base64.b64decode(url.split(",")[1])
         # if not base64_image:
         #     if response.status_code == 200:
         #         print("Downloading image")
@@ -80,6 +85,7 @@ def scroll_to_infinite_page(browser, connection, pages):
             connection.send("End of page reached")
             break
         last_height = new_height
+        pages += 1
 
     try:
         connection.send("Find the show more button")
@@ -92,10 +98,11 @@ def scroll_to_infinite_page(browser, connection, pages):
         pass
 
     connection.send("Downloading images")
+    return pages
 
 
 def search_in_google_image(query, number, connection):
-    pages = 0
+    pages = 1
     # while True:
     #     connection.send("go")
     # connection.send("what")
@@ -138,10 +145,10 @@ def search_in_google_image(query, number, connection):
     # e[0].click()
 
     connection.send(f"Waiting for page {pages} to load")
-    pages += 1
+
     time.sleep(1)
 
-    scroll_to_infinite_page(browser, connection, pages)
+    pages = scroll_to_infinite_page(browser, connection, pages)
     connection.send(f"Scroll finished, loaded {pages} pages")
     # element = browser.find_elements_by_class_name('v4dQwb')
     elements = browser.find_elements_by_xpath("//img[contains(@class, 'rg_i') and contains(@class, 'Q4LuWd')]")
@@ -149,8 +156,8 @@ def search_in_google_image(query, number, connection):
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [executor.submit(save_file, query, number, args, connection) for args in elements]
         wait(futures, timeout=None, return_when=ALL_COMPLETED)
-        connection.send("Downloads finished")
-    browser.quit()
+        connection.send(f"Downloads finished downloaded {number.value} images")
+    # browser.quit()
     # results = executor.map(save_file, elements)
     # futures = []
     # for arg in elements:
@@ -187,36 +194,40 @@ def search_in_google_image(query, number, connection):
 
 
 def search_download_images():
+    global query_search
+    global button_clicked
     query_search = entry.get()
     if query_search == "":
         error.config(text="Empty query please type at least on character")
         return
     error.config(text="")
     info.config(text="Please wait for the browser to open and download your images")
-    saved_images = multiprocessing.Value('d', 0.0)
+    # saved_images = multiprocessing.Value('d', 0.0)
+    button_clicked = True
 
     # manager = multiprocessing.Manager()
     # d = manager.dict()
     # d[0] = info
     # kill_queue = multiprocessing.Queue()
-    parent_connection, child_connection = multiprocessing.Pipe()
-    p = Process(target=search_in_google_image, args=(query_search, saved_images, child_connection))
-    p.start()
-    window.quit()
+    # parent_connection, child_connection = multiprocessing.Pipe()
+    # p = Process(target=search_in_google_image, args=(query_search, saved_images, child_connection))
+    # p.start()
 
-    file_browser_opened = False
-    while time.perf_counter() < 90:
-        print(time.perf_counter())
-        window.update()
-        window.attributes("-topmost", True)
-        received_text = f"{parent_connection.recv()}"
-        info.config(text=received_text)
-        if received_text.__contains__("Downloads finished") and not file_browser_opened:
-            # if time.perf_counter() > 60 and not file_browser_opened:
-            file_browser_opened = True
-            subprocess.call(f"explorer {query_search}")
-            return
-    sys.exit()
+    # window.quit()
+    #
+    # file_browser_opened = False
+    # while time.perf_counter() < 90:
+    #     print(time.perf_counter())
+    #     window.update()
+    #     window.attributes("-topmost", True)
+    #     received_text = f"{parent_connection.recv()}"
+    #     info.config(text=received_text)
+    #     if received_text.__contains__("Downloads finished") and not file_browser_opened:
+    #         # if time.perf_counter() > 60 and not file_browser_opened:
+    #         file_browser_opened = True
+    #         subprocess.call(f"explorer {query_search}")
+    #         return
+    # sys.exit()
 
 
 # subprocess.call(f"explorer {query_search}")
@@ -239,6 +250,39 @@ def search_download_images():
 
 # search_in_google_image(query_search)
 
+def update_ui():
+    global parent_connection
+    global process_spawned
+    global download_started
+    if not download_started:
+        window.after(2000, update_ui)
+    else:
+        window.after(50, update_ui)
+
+    if not button_clicked:
+        return
+    if query_search == "":
+        return
+    if not process_spawned:
+        process_spawned = True
+        parent_connection, child_connection = multiprocessing.Pipe()
+        saved_images = multiprocessing.Value('d', 0.0)
+        p = Process(target=search_in_google_image, args=(query_search, saved_images, child_connection))
+        p.start()
+    else:
+
+        if not parent_connection.closed:
+            received_text = f"{parent_connection.recv()}"
+            info.config(text=received_text)
+            if received_text.__contains__("pictures downloaded"):
+                download_started = True
+            if received_text.__contains__("Downloads finished"):
+                # if time.perf_counter() > 60 and not file_browser_opened:
+                file_browser_opened = True
+                subprocess.call(f"explorer {query_search}")
+                parent_connection.close()
+    # schedule this to run again
+
 
 if __name__ == '__main__':
     if sys.platform.startswith('win'):
@@ -246,7 +290,7 @@ if __name__ == '__main__':
         multiprocessing.freeze_support()
     queue = multiprocessing.Queue()
 
-    window = tk.Tk("Google image search downloader")
+    window = tk.Tk()
     # window.tk.call('tk', 'windowingsystem', window._w)
     window.geometry("350x150")
     window.winfo_toplevel().title("Google image downloader")
@@ -260,6 +304,8 @@ if __name__ == '__main__':
     button.pack(pady=10, side=tk.TOP)
     error.pack(pady=5, side=tk.TOP)
     info.pack(pady=5, side=tk.TOP)
+    window.attributes("-topmost", True)
+    update_ui()
     window.mainloop()
 
 # query_search = input("enter a search query\n")
