@@ -140,7 +140,7 @@ def search_in_google_image(query, number, page_number, browser_launched):
     # connection.send("Opening browser")
     global browser
     options = Options()
-    # options.headless = True
+    options.headless = True
     # args = ["hide_console", ]
 
     # browser = webdriver.Firefox(options=options, executable_path=r'driver/geckodriver.exe', service_args=args)
