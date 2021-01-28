@@ -13,6 +13,8 @@ from concurrent.futures import wait, ALL_COMPLETED
 from multiprocessing import Process
 import multiprocessing
 import tkinter as tk
+from tkinter import NORMAL
+
 from PIL import Image
 import requests
 from selenium import webdriver
@@ -25,10 +27,16 @@ button_clicked = False
 process_spawned = False
 parent_connection = None
 download_started = False
+browser_created = False
+total_images = 0
+pages_downloaded = 0
+saved_images = 0
+pages = 0
 
 
-def save_file(query, number, element, connection):
+def save_file(query, number, element):
     # print(arg)
+    global pages_downloaded
     url = element.get_attribute("src")
     while url is None:
         browser.execute_script("arguments[0].scrollIntoView();", element)
@@ -36,12 +44,12 @@ def save_file(query, number, element, connection):
         # print("No sources found taking screenshot")
         # url = element.screenshot_as_base64
     try:
-        print("Downloading image")
+        # print("Downloading image")
         response = requests.get(url)
         img_data = response.content
     except Exception:
 
-        print("Downloading base64 image")
+        # print("Downloading base64 image")
         img_data = base64.b64decode(url.split(",")[1])
         # if not base64_image:
         #     if response.status_code == 200:
@@ -49,22 +57,22 @@ def save_file(query, number, element, connection):
     search = "".join(random.choices(string.ascii_lowercase + string.digits, k=8))
 
     with open(os.path.join(f"{query}", f"search_{search}.jpg"), "wb") as file:
-        print("Saving image to path")
+        # print("Saving image to path")
         file.write(img_data)
 
-        number.value = number.value + 1
-        connection.send(f"pictures downloaded {str(number.value)}")
+        number.value += 1
+        # connection.send(f"pictures downloaded {str(pages_downloaded)}")
     try:
         img = Image.open(os.path.join(f"{query}", f"search_{search}.jpg"))
         img.verify()
     except  (IOError, SyntaxError) as e:
         os.remove(os.path.join(f"{query}", f"search_{search}.jpg"))
 
-        number.value = number.value - 1
-        connection.send(f"pictures removed {str(number.value)}")
+        number.value -= 1
+        # connection.send(f"pictures removed {str(pages_downloaded)}")
 
 
-def scroll_to_infinite_page(browser, connection, pages):
+def scroll_to_infinite_page(browser, page_number):
     SCROLL_PAUSE_TIME = 4
 
     # Get scroll height
@@ -72,37 +80,38 @@ def scroll_to_infinite_page(browser, connection, pages):
 
     while True:
         # Scroll down to bottom
-        connection.send(f"Scrolling to bottom of page {pages}")
+        # connection.send(f"Scrolling to bottom of page {pages}")
         browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
         # Wait to load page
-        connection.send(f"Waiting to load page {pages}")
+        # connection.send(f"Waiting to load page {pages}")
         time.sleep(SCROLL_PAUSE_TIME)
 
         # Calculate new scroll height and compare with last scroll height
         new_height = browser.execute_script("return document.body.scrollHeight")
         if new_height == last_height:
-            connection.send("End of page reached")
+            # connection.send("End of page reached")
             break
         last_height = new_height
-        pages += 1
+        page_number.value += 1
 
     try:
-        connection.send("Find the show more button")
+        # connection.send("Find the show more button")
         end_result = browser.find_element_by_class_name("mye4qd")
         end_result.click()
-        connection.send("Show more button found")
+        # connection.send("Show more button found")
         time.sleep(SCROLL_PAUSE_TIME)
         scroll_to_infinite_page(browser)
     except Exception:
         pass
 
-    connection.send("Downloading images")
-    return pages
+        # connection.send("Downloading images")
+        page_number.value = -1
 
 
-def search_in_google_image(query, number, connection):
-    pages = 1
+def search_in_google_image(query, number, page_number, browser_launched):
+    global browser_created
+
     # while True:
     #     connection.send("go")
     # connection.send("what")
@@ -122,21 +131,23 @@ def search_in_google_image(query, number, connection):
     #         subprocess.call(f"explorer {query}")
     #         FnScope.showed_explorer = True
 
-    connection.send("Creating directory")
+    # connection.send("Creating directory")
     save_directory = os.path.join(f"{query}", "")
     if os.path.exists(save_directory) is False:
         os.mkdir(save_directory)
 
-    connection.send("Opening browser")
+    # connection.send("Opening browser")
     global browser
     options = Options()
     options.headless = True
     # args = ["hide_console", ]
 
     # browser = webdriver.Firefox(options=options, executable_path=r'driver/geckodriver.exe', service_args=args)
+    # if browser_launched.value == 0:
     browser = webdriver.Firefox(options=options, executable_path=r'driver/geckodriver.exe')
+    # browser_launched.value = 1
 
-    connection.send("Searching the query")
+    # connection.send("Searching the query")
     search_url = f"https://www.google.com/search?site=&tbm=isch&source=hp&biw=1873&bih=990&q={query}"
     browser.get(search_url)
 
@@ -144,19 +155,22 @@ def search_in_google_image(query, number, connection):
     # e = browser.find_elements_by_class_name('rg_i')
     # e[0].click()
 
-    connection.send(f"Waiting for page {pages} to load")
+    # connection.send(f"Waiting for page {pages} to load")
 
     time.sleep(1)
 
-    pages = scroll_to_infinite_page(browser, connection, pages)
-    connection.send(f"Scroll finished, loaded {pages} pages")
+    scroll_to_infinite_page(browser, page_number)
+    # connection.send(f"Scroll finished, loaded {pages} pages")
     # element = browser.find_elements_by_class_name('v4dQwb')
     elements = browser.find_elements_by_xpath("//img[contains(@class, 'rg_i') and contains(@class, 'Q4LuWd')]")
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(save_file, query, number, args, connection) for args in elements]
+        futures = [executor.submit(save_file, query, number, args) for args in elements]
         wait(futures, timeout=None, return_when=ALL_COMPLETED)
-        connection.send(f"Downloads finished downloaded {number.value} images")
+        browser.quit()
+        time.sleep(1)
+        number.value = -1
+        # connection.send(f"Downloads finished downloaded {pages_downloaded} images")
     # browser.quit()
     # results = executor.map(save_file, elements)
     # futures = []
@@ -197,6 +211,8 @@ def search_download_images():
     global query_search
     global button_clicked
     query_search = entry.get()
+    button["state"] = tk.DISABLED
+    entry["state"] = tk.DISABLED
     if query_search == "":
         error.config(text="Empty query please type at least on character")
         return
@@ -251,36 +267,63 @@ def search_download_images():
 # search_in_google_image(query_search)
 
 def update_ui():
-    global parent_connection
+    # global parent_connection
     global process_spawned
     global download_started
-    if not download_started:
-        window.after(2000, update_ui)
-    else:
-        window.after(50, update_ui)
+    global button_clicked
+    global query_search
+    global total_images
+    window.after(100, update_ui)
+
+    # if not download_started:
+
+    # else:
+    #     window.after(10, update_ui)
 
     if not button_clicked:
         return
     if query_search == "":
         return
     if not process_spawned:
+        saved_images.value = 0
+        pages.value = 1
         process_spawned = True
-        parent_connection, child_connection = multiprocessing.Pipe()
-        saved_images = multiprocessing.Value('d', 0.0)
-        p = Process(target=search_in_google_image, args=(query_search, saved_images, child_connection))
+        # parent_connection, child_connection = multiprocessing.Pipe()
+
+        p = Process(target=search_in_google_image, args=(query_search, saved_images, pages, browser_created))
         p.start()
     else:
-
-        if not parent_connection.closed:
-            received_text = f"{parent_connection.recv()}"
-            info.config(text=received_text)
-            if received_text.__contains__("pictures downloaded"):
-                download_started = True
-            if received_text.__contains__("Downloads finished"):
-                # if time.perf_counter() > 60 and not file_browser_opened:
-                file_browser_opened = True
+        if pages.value != -1:
+            info2.config(text=f"Please wait until the end of the process ")
+            info.config(text=f"Loading page {str(pages.value)}")
+        else:
+            if saved_images.value != -1:
+                total_images = saved_images.value
+                info.config(text=f"Downloading image {str(saved_images.value)}")
+            else:
+                info2.config(text=f"Download finished")
+                info.config(text=f"Downloaded  {str(total_images)} pictures")
                 subprocess.call(f"explorer {query_search}")
-                parent_connection.close()
+                print(time.perf_counter())
+                process_spawned = False
+                button_clicked = False
+                query_search = ""
+                button["state"] = tk.NORMAL
+                entry["state"] = tk.NORMAL
+
+        # if not parent_connection.closed:
+        #     received_text = f"{parent_connection.recv()}"
+        #     info.config(text=received_text)
+        #     if received_text.__contains__("pictures downloaded"):
+        #         download_started = True
+        #     if received_text.__contains__("Downloads finished"):
+        #         # if time.perf_counter() > 60 and not file_browser_opened:
+        #         file_browser_opened = True
+        #         subprocess.call(f"explorer {query_search}")
+        #         parent_connection.close()
+        #         button["state"] = tk.NORMAL
+        #         entry["state"] = tk.NORMAL
+        #         print(time.perf_counter())
     # schedule this to run again
 
 
@@ -289,21 +332,27 @@ if __name__ == '__main__':
         # On Windows calling this function is necessary.
         multiprocessing.freeze_support()
     queue = multiprocessing.Queue()
-
+    saved_images = multiprocessing.Value('d', 0.0)
+    pages = multiprocessing.Value('d', 1.0)
+    browser_created = multiprocessing.Value('d', 0)
     window = tk.Tk()
     # window.tk.call('tk', 'windowingsystem', window._w)
-    window.geometry("350x150")
+    window.geometry("350x200")
     window.winfo_toplevel().title("Google image downloader")
     search_label = tk.Label(text="Search images")
     entry = tk.Entry()
     button = tk.Button(text="Download images", command=search_download_images)
     info = tk.Label(text="", fg='#0000CD')
     error = tk.Label(text="", fg='#f00')
+    info2 = tk.Label(text="", fg='#008000')
+
     search_label.pack()
     entry.pack()
     button.pack(pady=10, side=tk.TOP)
     error.pack(pady=5, side=tk.TOP)
+    info2.pack(pady=7, side=tk.TOP)
     info.pack(pady=5, side=tk.TOP)
+    window.resizable(False, False)
     window.attributes("-topmost", True)
     update_ui()
     window.mainloop()
