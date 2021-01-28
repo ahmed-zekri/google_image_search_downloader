@@ -86,6 +86,17 @@ def scroll_to_infinite_page(browser, page_number):
         # Wait to load page
         # connection.send(f"Waiting to load page {pages}")
         time.sleep(SCROLL_PAUSE_TIME)
+        try:
+            # connection.send("Find the show more button")
+
+            end_result = browser.find_element_by_class_name("mye4qd")
+            end_result.click()
+            time.sleep(SCROLL_PAUSE_TIME)
+            # connection.send("Show more button found")
+
+            # scroll_to_infinite_page(browser)
+        except Exception:
+            pass
 
         # Calculate new scroll height and compare with last scroll height
         new_height = browser.execute_script("return document.body.scrollHeight")
@@ -95,18 +106,8 @@ def scroll_to_infinite_page(browser, page_number):
         last_height = new_height
         page_number.value += 1
 
-    try:
-        # connection.send("Find the show more button")
-        end_result = browser.find_element_by_class_name("mye4qd")
-        end_result.click()
-        # connection.send("Show more button found")
-        time.sleep(SCROLL_PAUSE_TIME)
-        scroll_to_infinite_page(browser)
-    except Exception:
-        pass
-
         # connection.send("Downloading images")
-        page_number.value = -1
+    page_number.value = -1
 
 
 def search_in_google_image(query, number, page_number, browser_launched):
@@ -139,7 +140,7 @@ def search_in_google_image(query, number, page_number, browser_launched):
     # connection.send("Opening browser")
     global browser
     options = Options()
-    options.headless = True
+    # options.headless = True
     # args = ["hide_console", ]
 
     # browser = webdriver.Firefox(options=options, executable_path=r'driver/geckodriver.exe', service_args=args)
