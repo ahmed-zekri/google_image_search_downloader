@@ -15,6 +15,10 @@ named with the query name
 
 Just install all the dependencies (selenium library) and run in a terminal with the python command (or py)
 
+### Releases
+
+You can go to the release section in order to download the latest version directly from an executable (Windows only)
+
 
 
 
