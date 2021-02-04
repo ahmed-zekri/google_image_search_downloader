@@ -1,22 +1,20 @@
 import base64
 import concurrent.futures
-import ctypes
+import multiprocessing
 import os
 import random
-import re
 import string
 import subprocess
 import sys
 import threading
 import time
-from concurrent.futures import wait, ALL_COMPLETED
-from multiprocessing import Process
-import multiprocessing
 import tkinter as tk
-from tkinter import NORMAL
+from collections import defaultdict
+from concurrent.futures import wait, ALL_COMPLETED
+from multiprocessing.dummy import Process
 
-from PIL import Image
 import requests
+from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
@@ -44,8 +42,12 @@ def save_file(query, number, element):
         # print("No sources found taking screenshot")
         # url = element.screenshot_as_base64
     try:
+
         # print("Downloading image")
         response = requests.get(url)
+        if 'encrypted' in url:
+            return
+        print(url)
         img_data = response.content
     except Exception:
 
@@ -140,7 +142,7 @@ def search_in_google_image(query, number, page_number, browser_launched):
     # connection.send("Opening browser")
     global browser
     options = Options()
-    options.headless = True
+    options.headless = False
     # args = ["hide_console", ]
 
     # browser = webdriver.Firefox(options=options, executable_path=r'driver/geckodriver.exe', service_args=args)
@@ -158,13 +160,57 @@ def search_in_google_image(query, number, page_number, browser_launched):
 
     # connection.send(f"Waiting for page {pages} to load")
 
-    time.sleep(1)
+    def get_image(element):
+        # label = element.find_element_by_xpath(
+        #     "//a[contains(@class, 'kGQAp') and contains(@class, 'VFACy')]").get_attribute("title")
+        print(label)
+        element.click()
+        # arg = browser.find_elements_by_xpath()
+        # # time.sleep(1)
+        #
+        # # arg = browser.find_elements_by_xpath(
+        # #     f"//img[contains(@class, 'n3VNCb') and contains(@alt, 'Image result for {query}')"
+        # #     f" and contains(@data-noaft, '1')"
+        # #     f" and contains(@jsname, 'HiaYvf')"
+        # #     f" and contains(@jsaction, 'load:XAeZkd;')]"
+        # # )
+        # arg.sort(key=lambda x: x.size['width'], reverse=True)
+        # if len(arg) > 0:
+        #     save_file(query, number, arg[0])
 
-    scroll_to_infinite_page(browser, page_number)
+    # time.sleep(1)
+
+    #    scroll_to_infinite_page(browser, page_number)
+
     # connection.send(f"Scroll finished, loaded {pages} pages")
     # element = browser.find_elements_by_class_name('v4dQwb')
-    elements = browser.find_elements_by_xpath("//img[contains(@class, 'rg_i') and contains(@class, 'Q4LuWd')]")
+    # elements = browser.find_elements_by_xpath("//img[contains(@class, 'rg_i') and contains(@class, 'Q4LuWd')]")
+    elements = browser.find_elements_by_xpath("//div[contains(@class, 'isv-r') and contains(@class, 'PNCib')]")
+    labels_elem = browser.find_elements_by_xpath(
+        "//a[contains(@class, 'kGQAp') and contains(@class, 'VFACy')]")
+    # .get_attribute("title")
+    dict = defaultdict()
+    labels = []
+    for label in labels_elem:
+        labels.append(label.get_attribute("title"))
 
+    for index, element in enumerate(elements):
+        if index == len(labels) - 1:
+            break
+        dict[labels[index]] = element
+
+    return
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        for key,value in enumerate()
+        futures = [executor.submit(get_image, args) for args in elements and label in lab]
+
+    return
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(get_image, args) for args in elements]
+
+    print("finished")
+    return
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [executor.submit(save_file, query, number, args) for args in elements]
         wait(futures, timeout=None, return_when=ALL_COMPLETED)
