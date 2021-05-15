@@ -192,6 +192,7 @@ def update_ui():
 
 if __name__ == '__main__':
     print('Installing/upgrading dependency')
+    subprocess.run(['python', 'get-pip.py'], capture_output=True)
     subprocess.run(['pip', 'install', '--upgrade', 'selenium'], capture_output=True)
     subprocess.run(['pip', 'install', '--upgrade', 'Pillow'], capture_output=True)
 
