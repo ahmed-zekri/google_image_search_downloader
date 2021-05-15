@@ -1,24 +1,19 @@
 import base64
 import concurrent.futures
-import ctypes
 import os
 import random
-import re
 import string
 import subprocess
 import sys
 import threading
 import time
+
 from concurrent.futures import wait, ALL_COMPLETED
 from multiprocessing import Process
 import multiprocessing
 import tkinter as tk
-from tkinter import NORMAL
 
-from PIL import Image
 import requests
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
 
 query_search = ""
 browser = None
@@ -62,6 +57,7 @@ def save_file(query, number, element):
 
         number.value += 1
         # connection.send(f"pictures downloaded {str(pages_downloaded)}")
+    from PIL import Image
     try:
         img = Image.open(os.path.join(f"{query}", f"search_{search}.jpg"))
         img.verify()
@@ -80,14 +76,13 @@ def scroll_to_infinite_page(browser, page_number):
 
     while True:
         # Scroll down to bottom
-        # connection.send(f"Scrolling to bottom of page {pages}")
+
         browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
         # Wait to load page
-        # connection.send(f"Waiting to load page {pages}")
+
         time.sleep(SCROLL_PAUSE_TIME)
         try:
-            # connection.send("Find the show more button")
 
             end_result = browser.find_element_by_class_name("mye4qd")
             end_result.click()
@@ -112,57 +107,24 @@ def scroll_to_infinite_page(browser, page_number):
 
 def search_in_google_image(query, number, page_number, browser_launched):
     global browser_created
-
-    # while True:
-    #     connection.send("go")
-    # connection.send("what")
-
-    # dict[0].config(text="Please wait for the browser to open and download your images")
-
-    # class FnScope:
-    #     processed_images = 0
-    #     showed_explorer = False
-
-    # def finished_downloads(results):
-
-    #
-    # FnScope.processed_images += 1
-    # with lock:
-    #     if FnScope.processed_images > number.value - 5 and not FnScope.showed_explorer:
-    #         subprocess.call(f"explorer {query}")
-    #         FnScope.showed_explorer = True
-
-    # connection.send("Creating directory")
     save_directory = os.path.join(f"{query}", "")
     if os.path.exists(save_directory) is False:
         os.mkdir(save_directory)
+    from selenium import webdriver
+    from selenium.webdriver.firefox.options import Options
 
-    # connection.send("Opening browser")
     global browser
     options = Options()
     options.headless = True
-    # args = ["hide_console", ]
-
-    # browser = webdriver.Firefox(options=options, executable_path=r'driver/geckodriver.exe', service_args=args)
-    # if browser_launched.value == 0:
     browser = webdriver.Firefox(options=options, executable_path=r'driver/geckodriver.exe')
-    # browser_launched.value = 1
 
-    # connection.send("Searching the query")
     search_url = f"https://www.google.com/search?site=&tbm=isch&source=hp&biw=1873&bih=990&q={query}"
     browser.get(search_url)
-
-    # click on first result image
-    # e = browser.find_elements_by_class_name('rg_i')
-    # e[0].click()
-
-    # connection.send(f"Waiting for page {pages} to load")
 
     time.sleep(1)
 
     scroll_to_infinite_page(browser, page_number)
-    # connection.send(f"Scroll finished, loaded {pages} pages")
-    # element = browser.find_elements_by_class_name('v4dQwb')
+
     elements = browser.find_elements_by_xpath("//img[contains(@class, 'rg_i') and contains(@class, 'Q4LuWd')]")
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -171,41 +133,6 @@ def search_in_google_image(query, number, page_number, browser_launched):
         browser.quit()
         time.sleep(1)
         number.value = -1
-        # connection.send(f"Downloads finished downloaded {pages_downloaded} images")
-    # browser.quit()
-    # results = executor.map(save_file, elements)
-    # futures = []
-    # for arg in elements:
-    #     futures.append(
-    #         executor.submit(save_file, query, number, arg, connection).add_done_callback(finished_downloads))
-
-    # print(time.perf_counter())
-
-
-# sys.exit()
-# info.config(text=f"Downloaded {str(images_number)} images successfully")
-
-
-# Google image web site logic
-# if count == 0:
-#     big_img = elements[0].find_element_by_class_name('n3VNCb')
-# else:
-#     big_img = elements[1].find_element_by_class_name('n3VNCb')
-#
-# images_url.append(big_img.get_attribute("src"))
-#
-# # write image to file
-# response = requests.get(images_url[count])
-# if response.status_code == 200:
-#     with open(f"search{count + 1}.jpg", "wb") as file:
-#         file.write(response.content)
-#
-# count += 1
-#
-# # Stop get and save after 5
-# # if count == 5:
-# #     break
-#
 
 
 def search_download_images():
@@ -219,53 +146,9 @@ def search_download_images():
         return
     error.config(text="")
     info.config(text="Please wait for the browser to open and download your images")
-    # saved_images = multiprocessing.Value('d', 0.0)
+
     button_clicked = True
 
-    # manager = multiprocessing.Manager()
-    # d = manager.dict()
-    # d[0] = info
-    # kill_queue = multiprocessing.Queue()
-    # parent_connection, child_connection = multiprocessing.Pipe()
-    # p = Process(target=search_in_google_image, args=(query_search, saved_images, child_connection))
-    # p.start()
-
-    # window.quit()
-    #
-    # file_browser_opened = False
-    # while time.perf_counter() < 90:
-    #     print(time.perf_counter())
-    #     window.update()
-    #     window.attributes("-topmost", True)
-    #     received_text = f"{parent_connection.recv()}"
-    #     info.config(text=received_text)
-    #     if received_text.__contains__("Downloads finished") and not file_browser_opened:
-    #         # if time.perf_counter() > 60 and not file_browser_opened:
-    #         file_browser_opened = True
-    #         subprocess.call(f"explorer {query_search}")
-    #         return
-    # sys.exit()
-
-
-# subprocess.call(f"explorer {query_search}")
-# p.join()
-# for _ in range(50):
-#     print(parent_connection.recv())
-# p.join()
-
-# kill_queue = multiprocessing.Queue()
-
-# with concurrent.futures.ThreadPoolExecutor() as executor:
-#     executor.submit(update_info, saved_images)
-# return
-
-# while True:
-#     print(f'received {str(saved_images.value)} images')
-
-# Waiting for process to finish
-# p.join()
-
-# search_in_google_image(query_search)
 
 def update_ui():
     # global parent_connection
@@ -276,11 +159,6 @@ def update_ui():
     global total_images
     window.after(100, update_ui)
 
-    # if not download_started:
-
-    # else:
-    #     window.after(10, update_ui)
-
     if not button_clicked:
         return
     if query_search == "":
@@ -289,7 +167,6 @@ def update_ui():
         saved_images.value = 0
         pages.value = 1
         process_spawned = True
-        # parent_connection, child_connection = multiprocessing.Pipe()
 
         p = Process(target=search_in_google_image, args=(query_search, saved_images, pages, browser_created))
         p.start()
@@ -312,23 +189,12 @@ def update_ui():
                 button["state"] = tk.NORMAL
                 entry["state"] = tk.NORMAL
 
-        # if not parent_connection.closed:
-        #     received_text = f"{parent_connection.recv()}"
-        #     info.config(text=received_text)
-        #     if received_text.__contains__("pictures downloaded"):
-        #         download_started = True
-        #     if received_text.__contains__("Downloads finished"):
-        #         # if time.perf_counter() > 60 and not file_browser_opened:
-        #         file_browser_opened = True
-        #         subprocess.call(f"explorer {query_search}")
-        #         parent_connection.close()
-        #         button["state"] = tk.NORMAL
-        #         entry["state"] = tk.NORMAL
-        #         print(time.perf_counter())
-    # schedule this to run again
-
 
 if __name__ == '__main__':
+    print('Installing/upgrading dependency')
+    subprocess.run(['pip', 'install', '--upgrade', 'selenium'], capture_output=True)
+    subprocess.run(['pip', 'install', '--upgrade', 'Pillow'], capture_output=True)
+
     if sys.platform.startswith('win'):
         # On Windows calling this function is necessary.
         multiprocessing.freeze_support()
@@ -337,7 +203,7 @@ if __name__ == '__main__':
     pages = multiprocessing.Value('d', 1.0)
     browser_created = multiprocessing.Value('d', 0)
     window = tk.Tk()
-    # window.tk.call('tk', 'windowingsystem', window._w)
+
     window.geometry("350x200")
     window.winfo_toplevel().title("Google image downloader")
     search_label = tk.Label(text="Search images")
@@ -357,18 +223,3 @@ if __name__ == '__main__':
     window.attributes("-topmost", True)
     update_ui()
     window.mainloop()
-
-# query_search = input("enter a search query\n")
-# split_query = re.split("\s", query_search)
-# valid_query = False
-# while not valid_query:
-#     for split in split_query:
-#         if split != "":
-#             valid_query = True
-#
-#             search_in_google_image(query_search)
-#
-#             break
-#     if not valid_query:
-#         query_search = input("Search query can't be empty\n")
-#         split_query = re.split("\s", query_search)
