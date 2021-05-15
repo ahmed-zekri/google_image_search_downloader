@@ -16,6 +16,8 @@ and save them in a file named with the query name
 python google_image_search_downloader.py
 ```
 
+Or execute directly the script if you installed python launcher
+
 ### Releases
 
 You can go to the release section in order to download the latest version directly from an executable (Windows only)
